@@ -1,7 +1,6 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 #include <cmath>
-#include <vector>
 
 #define COLOR_WHITE 0xffffffff
 #define COLOR_BLACK 0x000000
@@ -10,8 +9,7 @@
 #define WIDTH 900
 #define HEIGHT 600
 #define PIXEL_SIZE 1
-constexpr static long size = 500;
-
+constexpr static long size = 100;
 
 struct Circle {
     double x;
@@ -23,6 +21,8 @@ struct Ray {
     double x_s, y_s;
     double angle;
 };
+
+static Ray rays[size] = {};
 
 void FillCircle(SDL_Surface* surface, const Circle* circle, const uint32_t color) {
     const double radius = pow(circle->radius,2);
@@ -40,7 +40,7 @@ void FillCircle(SDL_Surface* surface, const Circle* circle, const uint32_t color
     }
 }
 
-void FillRays(SDL_Surface* surface, const Ray rays[size], uint32_t color, const Circle& circle) {
+void FillRays(SDL_Surface* surface, uint32_t color, const Circle& circle) {
 
     double radius = pow(circle.radius,2);
 
@@ -50,13 +50,13 @@ void FillRays(SDL_Surface* surface, const Ray rays[size], uint32_t color, const 
         bool end_of_screen = false;
         bool object_hit = false;
 
-        double step = 1;
+        double step = 0.1;
         double x_draw = ray.x_s;
         double y_draw = ray.y_s;
 
         while(!end_of_screen && !object_hit) {
             x_draw += step * cos(ray.angle);
-            y_draw += step * sin(ray.angle);
+            y_draw += step * (0.1*sin(ray.angle));
 
             SDL_Rect pixel = {(int)x_draw, (int)y_draw, 1,1};
             SDL_FillRect(surface, &pixel, color);
@@ -76,10 +76,12 @@ void FillRays(SDL_Surface* surface, const Ray rays[size], uint32_t color, const 
 
 }
 
-void generate_rays(Circle circle, Ray rays[size]) {
+constexpr double pi = 1/M_PI;
+
+void generate_rays(const Circle& circle) {
 
     for(int i = 0; i < size; i++) {
-        double angle = ((double) i / size) * 2 * M_PI;
+        double angle = ((double) i * size) * 0.5 * pi;
         Ray ray = {circle.x, circle.y, angle};
         rays[i] = ray;
     }
@@ -91,6 +93,8 @@ void clear_screen(SDL_Surface* surface) {
     SDL_FillRect(surface, &scr, COLOR_BLACK);
 }
 
+
+
 int SDL_main(int argc, char *argv[]){
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Window* window = SDL_CreateWindow("Raytracing", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 900, 600, NULL);
@@ -99,9 +103,8 @@ int SDL_main(int argc, char *argv[]){
 
     Circle circle = {200, 200, 80};
     Circle shadow = {650, 300, 140};
-    Ray rays[size] = {};
 
-    generate_rays(circle, rays);
+    generate_rays(circle);
 
     bool running = true;
     SDL_Event event;
@@ -120,7 +123,7 @@ int SDL_main(int argc, char *argv[]){
                 circle.x = event.motion.x;
                 circle.y = event.motion.y;
 
-                generate_rays(circle, rays);
+                generate_rays(circle);
 
             }
         }
@@ -128,7 +131,7 @@ int SDL_main(int argc, char *argv[]){
         FillCircle(surface, &circle, COLOR_WHITE);
 
         FillCircle(surface, &shadow, COLOR_GRAY);
-        FillRays(surface, rays, COLOR_YELLOW, shadow);
+        FillRays(surface, COLOR_YELLOW, shadow);
 
         SDL_UpdateWindowSurface(window);
         SDL_Delay(10);
